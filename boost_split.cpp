@@ -1,0 +1,75 @@
+#include <list>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <boost/regex.hpp>
+
+boost::regex e("<\\s*A\\s+[^>]*href\\s*=\\s*\"([^\"]*)\"",
+               boost::regex::normal | boost::regbase::icase);
+
+void load_file_str(std::string& s, std::istream& is)
+{
+   s.erase();
+   if(is.bad()) return;
+   //
+   // attempt to grow string buffer to match file size,
+   // this doesn't always work...
+   s.reserve(is.rdbuf()->in_avail());
+   char c;
+   while(is.get(c))
+   {
+      // use logarithmic growth stategy, in case
+      // in_avail (above) returned zero:
+      if(s.capacity() == s.size())
+         s.reserve(s.capacity() * 3);
+      s.append(1, c);
+   }
+}
+/***************************************************
+*boost::regex_split(out_iterator, src_str, regex_pattern);
+* Description  分割 src_str, 把符合条件的字符串放到out_iterator 里面去。  	
+* @out_iterator
+* @src_src
+* @regex_pattern	
+* @return 	
+* *************************************************/
+int main(int argc, char** argv)
+{
+   std::string s;
+   std::list<std::string> l;
+   int i;
+   for(i = 1; i < argc; ++i)
+   {
+      std::cout << "Findings URL's in " << argv[i] << ":" << std::endl;
+      s.erase();
+      std::ifstream is(argv[i]);
+      load_file_str(s, is);
+      is.close();
+      boost::regex_split(std::back_inserter(l), s, e);
+      while(l.size())
+      {
+         s = *(l.begin());
+         l.pop_front();
+         std::cout << s << std::endl;
+      }
+   }
+   //
+   // alternative method:
+   // split one match at a time and output direct to
+   // cout via ostream_iterator<std::string>....
+   //
+   std::cout<<"###############################################################################"<<std::endl;
+   for(i = 1; i < argc; ++i)
+   {
+      std::cout << "Findings URL's in " << argv[i] << ":" << std::endl;
+      s.erase();
+      std::ifstream is(argv[i]);
+      load_file_str(s, is);
+      is.close();
+      while(boost::regex_split(std::ostream_iterator<std::string>(std::cout), s, e, boost::match_default, 1)) std::cout << std::endl;
+   }
+
+   return 0;
+}
+
+
